@@ -246,7 +246,7 @@ export default function App() {
                     <p style={{ margin: 0, color: "#bbb", lineHeight: 1.7, fontSize: 14 }}>{c.text}</p>
                   </div>
                 <div style={{ textAlign: "center", padding: "24px", color: "#444", fontSize: 13, letterSpacing: 2 }}>
-  Made by Bilgehan Yakıcı 
+  Made by Bilgehan Yakici
               </div>
 </div>
                 ))}
