@@ -11,6 +11,7 @@ const FILMS = [
 const BIN_ID = import.meta.env.VITE_JSONBIN_ID || "";
 const API_KEY = import.meta.env.VITE_JSONBIN_KEY || "";
 const BIN_URL = "https://api.jsonbin.io/v3/b/" + BIN_ID;
+const ADMIN_PASSWORD = "4276";
 
 async function fetchComments() {
   if (!BIN_ID || !API_KEY) return {};
@@ -34,7 +35,7 @@ function StarRating({ value, onChange, readonly }) {
     <div style={{ display: "flex", gap: 4 }}>
       {[1,2,3,4,5].map((s) => (
         <span key={s} onClick={() => !readonly && onChange && onChange(s)} onMouseEnter={() => !readonly && setHovered(s)} onMouseLeave={() => !readonly && setHovered(0)} style={{ fontSize: readonly ? 15 : 22, cursor: readonly ? "default" : "pointer", color: s <= (hovered || value) ? "#F5A623" : "#3a3a4a", transition: "color 0.15s", userSelect: "none" }}>
-          *
+          ★
         </span>
       ))}
     </div>
@@ -60,6 +61,10 @@ export default function App() {
   const [stars, setStars] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [showPassPrompt, setShowPassPrompt] = useState(false);
+  const [passInput, setPassInput] = useState("");
+  const [passError, setPassError] = useState("");
   const pollRef = useRef(null);
 
   function loadLocal() {
@@ -94,26 +99,64 @@ export default function App() {
     setSubmitting(false);
   }
 
+  async function handleDelete(filmId, commentId) {
+    const updated = { ...comments, [filmId]: (comments[filmId] || []).filter(c => c.id !== commentId) };
+    setComments(updated);
+    if (DEMO_MODE) { saveLocal(updated); } else { await putComments(updated); }
+  }
+
+  function handleAdminLogin() {
+    if (passInput === ADMIN_PASSWORD) {
+      setIsAdmin(true);
+      setShowPassPrompt(false);
+      setPassInput("");
+      setPassError("");
+    } else {
+      setPassError("Yanlis sifre!");
+    }
+  }
+
   const fc = film ? (comments[film.id] || []) : [];
   const avg = fc.length ? (fc.reduce((a, c) => a + c.stars, 0) / fc.length).toFixed(1) : null;
 
   const page = { minHeight: "100vh", background: "#0d0d14", fontFamily: "Georgia,serif", color: "#e8e0d4" };
   const header = { borderBottom: "1px solid #2a2a3a", padding: "0 40px", display: "flex", alignItems: "center", justifyContent: "space-between", height: 64, position: "sticky", top: 0, background: "rgba(13,13,20,0.97)", zIndex: 100 };
-  const card = { cursor: "pointer", borderRadius: 8, overflow: "hidden", background: "#13131e", border: "1px solid #1e1e2e", transition: "transform 0.2s" };
+  const cardStyle = { cursor: "pointer", borderRadius: 8, overflow: "hidden", background: "#13131e", border: "1px solid #1e1e2e", transition: "transform 0.2s" };
   const formBox = { background: "#13131e", border: "1px solid #1e1e2e", borderRadius: 10, padding: 28, marginBottom: 36 };
   const inp = { background: "#0d0d14", border: "1px solid #2a2a3a", borderRadius: 6, padding: "10px 14px", color: "#e8e0d4", fontSize: 14, outline: "none", fontFamily: "inherit" };
   const commentCard = { background: "#13131e", border: "1px solid #1e1e2e", borderRadius: 8, padding: "18px 22px" };
-  const avatar = { width: 36, height: 36, borderRadius: "50%", background: "#F5A623", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: "bold", color: "#0d0d14" };
+  const avatarStyle = { width: 36, height: 36, borderRadius: "50%", background: "#F5A623", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: "bold", color: "#0d0d14" };
 
   return (
     <div style={page}>
       <header style={header}>
         <div onClick={() => setFilm(null)} style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 22, color: "#F5A623" }}>*</span>
+          <span style={{ fontSize: 22, color: "#F5A623" }}>★</span>
           <span style={{ fontSize: 20, letterSpacing: 2, fontWeight: "bold", color: "#fff" }}>SINEMA KULUBU</span>
         </div>
-        {film && <button onClick={() => setFilm(null)} style={{ background: "none", border: "1px solid #3a3a4a", color: "#aaa", padding: "6px 16px", borderRadius: 4, cursor: "pointer", fontSize: 13 }}>Geri Don</button>}
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {film && <button onClick={() => setFilm(null)} style={{ background: "none", border: "1px solid #3a3a4a", color: "#aaa", padding: "6px 16px", borderRadius: 4, cursor: "pointer", fontSize: 13 }}>Geri Don</button>}
+          {!isAdmin ? (
+            <button onClick={() => setShowPassPrompt(true)} style={{ background: "none", border: "1px solid #3a3a4a", color: "#555", padding: "6px 16px", borderRadius: 4, cursor: "pointer", fontSize: 11 }}>Admin</button>
+          ) : (
+            <button onClick={() => setIsAdmin(false)} style={{ background: "#e05a5a22", border: "1px solid #e05a5a", color: "#e05a5a", padding: "6px 16px", borderRadius: 4, cursor: "pointer", fontSize: 11 }}>Admin Cikis</button>
+          )}
+        </div>
       </header>
+
+      {showPassPrompt && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 999 }}>
+          <div style={{ background: "#13131e", border: "1px solid #2a2a3a", borderRadius: 10, padding: 32, minWidth: 300 }}>
+            <h3 style={{ margin: "0 0 16px", color: "#fff", fontSize: 16 }}>Admin Girisi</h3>
+            <input type="password" value={passInput} onChange={e => setPassInput(e.target.value)} onKeyDown={e => e.key === "Enter" && handleAdminLogin()} placeholder="Sifre" style={{ ...inp, width: "100%", boxSizing: "border-box", marginBottom: 8 }} />
+            {passError && <div style={{ color: "#e05a5a", fontSize: 13, marginBottom: 8 }}>{passError}</div>}
+            <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+              <button onClick={handleAdminLogin} style={{ background: "#F5A623", color: "#0d0d14", border: "none", borderRadius: 6, padding: "8px 20px", fontWeight: "bold", cursor: "pointer", flex: 1 }}>Giris</button>
+              <button onClick={() => { setShowPassPrompt(false); setPassInput(""); setPassError(""); }} style={{ background: "none", border: "1px solid #3a3a4a", color: "#aaa", borderRadius: 6, padding: "8px 20px", cursor: "pointer" }}>Iptal</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {!film ? (
         <div style={{ maxWidth: 1100, margin: "0 auto", padding: "48px 24px" }}>
@@ -126,17 +169,17 @@ export default function App() {
               const fc2 = comments[f.id] || [];
               const avg2 = fc2.length ? (fc2.reduce((a,c) => a+c.stars,0)/fc2.length).toFixed(1) : null;
               return (
-                <div key={f.id} style={card} onClick={() => setFilm(f)} onMouseEnter={e => { e.currentTarget.style.transform="translateY(-6px)"; e.currentTarget.style.borderColor="#F5A623"; }} onMouseLeave={e => { e.currentTarget.style.transform="translateY(0)"; e.currentTarget.style.borderColor="#1e1e2e"; }}>
+                <div key={f.id} style={cardStyle} onClick={() => setFilm(f)} onMouseEnter={e => { e.currentTarget.style.transform="translateY(-6px)"; e.currentTarget.style.borderColor="#F5A623"; }} onMouseLeave={e => { e.currentTarget.style.transform="translateY(0)"; e.currentTarget.style.borderColor="#1e1e2e"; }}>
                   <div style={{ position: "relative" }}>
                     <img src={f.cover} alt={f.title} style={{ width: "100%", aspectRatio: "2/3", objectFit: "cover", display: "block" }} />
-                    <div style={{ position: "absolute", top: 8, right: 8, background: "rgba(0,0,0,0.8)", borderRadius: 4, padding: "3px 8px", fontSize: 13, color: "#F5A623", fontWeight: "bold" }}>* {f.rating}</div>
+                    <div style={{ position: "absolute", top: 8, right: 8, background: "rgba(0,0,0,0.8)", borderRadius: 4, padding: "3px 8px", fontSize: 13, color: "#F5A623", fontWeight: "bold" }}>★ {f.rating}</div>
                   </div>
                   <div style={{ padding: "14px 14px 16px" }}>
                     <div style={{ fontWeight: "bold", fontSize: 15, marginBottom: 4, color: "#fff" }}>{f.title}</div>
                     <div style={{ fontSize: 12, color: "#666", marginBottom: 8 }}>{f.year} - {f.director}</div>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                       <span style={{ fontSize: 11, color: "#555" }}>{fc2.length} yorum</span>
-                      {avg2 && <span style={{ fontSize: 12, color: "#F5A623" }}>* {avg2}</span>}
+                      {avg2 && <span style={{ fontSize: 12, color: "#F5A623" }}>★ {avg2}</span>}
                     </div>
                   </div>
                 </div>
@@ -157,8 +200,8 @@ export default function App() {
               <div style={{ fontSize: 14, color: "#666", marginBottom: 16 }}>{film.year} - {film.director}</div>
               <p style={{ color: "#aaa", lineHeight: 1.7, fontSize: 15, marginBottom: 20, maxWidth: 500 }}>{film.desc}</p>
               <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-                <div style={{ fontSize: 28, color: "#F5A623", fontWeight: "bold" }}>* {film.rating}</div>
-                {avg && <div style={{ borderLeft: "1px solid #2a2a3a", paddingLeft: 16, fontSize: 13, color: "#aaa" }}>Kullanici: <span style={{ color: "#F5A623", fontWeight: "bold" }}>* {avg}</span> <span style={{ color: "#555" }}>({fc.length} yorum)</span></div>}
+                <div style={{ fontSize: 28, color: "#F5A623", fontWeight: "bold" }}>★ {film.rating}</div>
+                {avg && <div style={{ borderLeft: "1px solid #2a2a3a", paddingLeft: 16, fontSize: 13, color: "#aaa" }}>Kullanici: <span style={{ color: "#F5A623", fontWeight: "bold" }}>★ {avg}</span> <span style={{ color: "#555" }}>({fc.length} yorum)</span></div>}
               </div>
             </div>
           </div>
@@ -189,13 +232,18 @@ export default function App() {
                   <div key={c.id} style={commentCard}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                        <div style={avatar}>{c.name[0].toUpperCase()}</div>
+                        <div style={avatarStyle}>{c.name[0].toUpperCase()}</div>
                         <div>
                           <div style={{ fontWeight: "bold", color: "#fff", fontSize: 14 }}>{c.name}</div>
                           <StarRating value={c.stars} readonly />
                         </div>
                       </div>
-                      <div style={{ fontSize: 12, color: "#444" }}>{timeAgo(c.ts)}</div>
+                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                        <div style={{ fontSize: 12, color: "#444" }}>{timeAgo(c.ts)}</div>
+                        {isAdmin && (
+                          <button onClick={() => handleDelete(film.id, c.id)} style={{ background: "#e05a5a22", border: "1px solid #e05a5a", color: "#e05a5a", borderRadius: 4, padding: "3px 10px", fontSize: 11, cursor: "pointer" }}>Sil</button>
+                        )}
+                      </div>
                     </div>
                     <p style={{ margin: 0, color: "#bbb", lineHeight: 1.7, fontSize: 14 }}>{c.text}</p>
                   </div>
