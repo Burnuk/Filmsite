@@ -1,19 +1,9 @@
 import { useState, useEffect, useRef } from "react";
-
+import posters from "./posters.json";
 const posterCache = {};
 function usePoster(imdbId) {
-  const [url, setUrl] = useState(posterCache[imdbId] || null);
-  useEffect(() => {
-    if (!imdbId || posterCache[imdbId] !== undefined) return;
-    posterCache[imdbId] = "";
-    fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(`https://www.omdbapi.com/?i=${imdbId}&apikey=e55d496a`)}`)
-  .then(r => r.json())
-  .then(d => {
-    const data = JSON.parse(d.contents);
-    const u = data.Poster && data.Poster !== "N/A" ? data.Poster : null;
-    posterCache[imdbId] = u || "";
-    setUrl(u);
-  })
+  return posters[imdbId] || null;
+}
       .catch(() => { posterCache[imdbId] = ""; });
   }, [imdbId]);
   return url;
