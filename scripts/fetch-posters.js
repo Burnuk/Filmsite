@@ -1,4 +1,5 @@
-import { writeFileSync } from "fs";
+const { writeFileSync } = require("fs");
+const https = require("https");
 
 const KEY = "e55d496a";
 const FILMS = [
@@ -14,18 +15,30 @@ const FILMS = [
   "tt0096283","tt0045152","tt0118849","tt2106476","tt0089881","tt0071853","tt0107207","tt0012349","tt0040897","tt0047478"
 ];
 
-const result = {};
-for (const imdb of FILMS) {
-  try {
-    const r = await fetch(`https://www.omdbapi.com/?i=${imdb}&apikey=${KEY}`);
-    const d = await r.json();
-    result[imdb] = d.Poster && d.Poster !== "N/A" ? d.Poster : null;
-    console.log(imdb, result[imdb] ? "✓" : "✗");
-  } catch(e) {
-    result[imdb] = null;
-    console.log(imdb, "ERROR");
-  }
+function get(url) {
+  return new Promise((resolve, reject) => {
+    https.get(url, res => {
+      let data = "";
+      res.on("data", chunk => data += chunk);
+      res.on("end", () => resolve(JSON.parse(data)));
+    }).on("error", reject);
+  });
 }
 
-writeFileSync("src/posters.json", JSON.stringify(result, null, 2));
-console.log("Done!");
+async function main() {
+  const result = {};
+  for (const imdb of FILMS) {
+    try {
+      const d = await get(`https://www.omdbapi.com/?i=${imdb}&apikey=${KEY}`);
+      result[imdb] = d.Poster && d.Poster !== "N/A" ? d.Poster : null;
+      console.log(imdb, result[imdb] ? "✓" : "✗");
+    } catch(e) {
+      result[imdb] = null;
+      console.log(imdb, "ERROR");
+    }
+  }
+  writeFileSync("src/posters.json", JSON.stringify(result, null, 2));
+  console.log("Done!");
+}
+
+main();
