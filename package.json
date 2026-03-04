@@ -2,6 +2,8 @@
   "name": "film-yorumlama",
   "version": "1.0.0",
   "scripts": {
+    "fetch-posters": "node --experimental-vm-modules scripts/fetch-posters.js",
+"prebuild": "npm run fetch-posters"
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
