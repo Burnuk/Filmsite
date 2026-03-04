@@ -4,11 +4,7 @@ const posterCache = {};
 function usePoster(imdbId) {
   return posters[imdbId] || null;
 }
-      .catch(() => { posterCache[imdbId] = ""; });
-  }, [imdbId]);
-  return url;
-}
-
+   
 const FILMS = [
   { id: 1,   title: "Inception",                      year: 2010, director: "Christopher Nolan",     genre: "Bilim Kurgu",        rating: 8.8, imdb: "tt1375666", desc: "Ruyalarin icine girerek fikir calan bir hirsizin hikayesi." },
   { id: 2,   title: "Interstellar",                    year: 2014, director: "Christopher Nolan",     genre: "Bilim Kurgu",        rating: 8.6, imdb: "tt0816692", desc: "Insanligin gelecegini kurtarmak icin yildizlararasi seyahat." },
