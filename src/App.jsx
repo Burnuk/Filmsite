@@ -6,9 +6,13 @@ function usePoster(imdbId) {
   useEffect(() => {
     if (!imdbId || posterCache[imdbId] !== undefined) return;
     posterCache[imdbId] = "";
-    fetch(`/api/poster?imdb=${imdbId}`)
+    fetch(`https://corsproxy.io/?https://www.omdbapi.com/?i=${imdbId}&apikey=e55d496a`)
       .then(r => r.json())
-      .then(d => { posterCache[imdbId] = d.poster || ""; setUrl(d.poster || null); })
+      .then(d => { 
+        const u = d.Poster && d.Poster !== "N/A" ? d.Poster : null;
+        posterCache[imdbId] = u || ""; 
+        setUrl(u); 
+      })
       .catch(() => { posterCache[imdbId] = ""; });
   }, [imdbId]);
   return url;
