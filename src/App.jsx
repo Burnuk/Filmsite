@@ -30,7 +30,7 @@ async function fetchFilms() {
     if (!data.has_next_page) break;
     cursor = data.next_cursor;
   }
-  return films.slice(0, 50).map((f, i) => ({
+  return films.slice(0, 500).map((f, i) => ({
     id: f.id,
     title: f.title,
     year: f.release_year,
