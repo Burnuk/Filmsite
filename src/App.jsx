@@ -129,7 +129,7 @@ body{background:var(--dark)}
 .film-row:hover .film-title{color:var(--gold)}
 .film-meta{font-family:'Special Elite',cursive;font-size:9px;color:rgba(240,232,208,.3);letter-spacing:2px;margin-bottom:6px}
 .film-genre{font-family:'Special Elite',cursive;font-size:9px;color:rgba(201,168,76,.45);letter-spacing:2px;margin-bottom:8px}
-.film-desc{font-family:'IM Fell English',serif;font-size:12px;color:rgba(240,232,208,.45);line-height:1.6;max-width:480px;font-style:italic}
+.film-desc{font-family:'IM Fell English',serif;font-size:13.5px;color:rgba(240,232,208,.45);line-height:1.6;max-width:480px;font-style:italic}
 .film-right{flex-shrink:0;text-align:right;padding-top:4px}
 .film-rating{font-family:'Special Elite',cursive;font-size:16px;color:var(--gold);display:flex;align-items:center;gap:4px;justify-content:flex-end;margin-bottom:4px}
 .film-rating span{font-size:11px;color:rgba(201,168,76,.5)}
