@@ -1,22 +1,31 @@
 import { useState, useEffect, useRef } from "react";
 
 const XMDB_KEY = "3dPgSXt2x9jWzFqLEE860r1w9aV1Mqd65DAF5ZmyD6s";
-const BIN_ID = import.meta.env.VITE_JSONBIN_ID || "";
-const API_KEY = import.meta.env.VITE_JSONBIN_KEY || "";
-const BIN_URL = "https://api.jsonbin.io/v3/b/" + BIN_ID;
+const JSONBIN_KEY = "$2a$10$WWuJS5VHb2.BnxeU9eWel.e/KelymF90gSicK1c5eqDQfVIIKD6HW";
+const FILMS_BIN = "69a7545443b1c97be9b06257";
+const COMMENTS_BIN = import.meta.env.VITE_JSONBIN_ID || "";
+const COMMENTS_KEY = import.meta.env.VITE_JSONBIN_KEY || "";
 const ADMIN_PASSWORD = "4276";
-const DEMO_MODE = !BIN_ID || !API_KEY;
+const DEMO_MODE = !COMMENTS_BIN || !COMMENTS_KEY;
 
-async function fetchComments() {
-  const res = await fetch(BIN_URL + "/latest", { headers: { "X-Master-Key": API_KEY } });
+const FILMS_URL = `https://api.jsonbin.io/v3/b/${FILMS_BIN}`;
+const COMMENTS_URL = `https://api.jsonbin.io/v3/b/${COMMENTS_BIN}`;
+
+async function loadFilmsFromBin() {
+  const res = await fetch(FILMS_URL + "/latest", { headers: { "X-Master-Key": JSONBIN_KEY } });
   const data = await res.json();
-  return data.record || {};
-}
-async function putComments(c) {
-  await fetch(BIN_URL, { method: "PUT", headers: { "Content-Type": "application/json", "X-Master-Key": API_KEY }, body: JSON.stringify(c) });
+  return Array.isArray(data.record?.films) ? data.record.films : null;
 }
 
-async function fetchFilms() {
+async function saveFilmsToBin(films) {
+  await fetch(FILMS_URL, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json", "X-Master-Key": JSONBIN_KEY },
+    body: JSON.stringify({ films })
+  });
+}
+
+async function fetchFilmsFromXMDB() {
   let films = [];
   let cursor = null;
   while (films.length < 500) {
@@ -30,7 +39,7 @@ async function fetchFilms() {
     if (!data.has_next_page) break;
     cursor = data.next_cursor;
   }
-  return films.slice(0, 500).map((f, i) => ({
+  return films.slice(0, 500).map(f => ({
     id: f.id,
     title: f.title,
     year: f.release_year,
@@ -40,6 +49,15 @@ async function fetchFilms() {
     cover: f.poster_url || null,
     desc: f.plot || "",
   }));
+}
+
+async function fetchComments() {
+  const res = await fetch(COMMENTS_URL + "/latest", { headers: { "X-Master-Key": COMMENTS_KEY } });
+  const data = await res.json();
+  return data.record || {};
+}
+async function putComments(c) {
+  await fetch(COMMENTS_URL, { method: "PUT", headers: { "Content-Type": "application/json", "X-Master-Key": COMMENTS_KEY }, body: JSON.stringify(c) });
 }
 
 function FilmReel({ size=120, opacity=0.1, style={} }) {
@@ -140,6 +158,7 @@ const css=`
 .cur{font-family:'Special Elite',cursive;font-size:10px;color:var(--gold)}
 .placeholder{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-family:'Special Elite',cursive;font-size:9px;color:rgba(201,168,76,.25);letter-spacing:1px;text-align:center;padding:8px;position:absolute}
 .loading{text-align:center;padding:80px 0;font-family:'Special Elite',cursive;font-size:12px;letter-spacing:4px;color:rgba(201,168,76,.5)}
+.updating{background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.2);padding:10px 20px;font-family:'Special Elite',cursive;font-size:10px;letter-spacing:3px;color:var(--gold);text-align:center;margin-bottom:16px}
 .footer{text-align:center;padding:28px;font-family:'Special Elite',cursive;font-size:10px;letter-spacing:4px;color:rgba(240,232,208,.16);text-transform:uppercase;border-top:1px solid rgba(201,168,76,.07)}
 .detail{max-width:880px;margin:0 auto;padding:48px 80px;position:relative;z-index:1}
 .dhero{display:flex;gap:44px;margin-bottom:44px;align-items:flex-start}
@@ -162,6 +181,9 @@ const css=`
 .fta::placeholder{color:rgba(240,232,208,.2);font-style:italic}
 .sbtn{background:var(--gold);color:#110e06;border:none;padding:11px 30px;font-family:'Special Elite',cursive;font-size:11px;letter-spacing:4px;text-transform:uppercase;cursor:pointer;transition:all .2s}
 .sbtn:hover{background:var(--cream)}
+.ubtn{background:none;border:1px solid var(--gold);color:var(--gold);padding:9px 22px;font-family:'Special Elite',cursive;font-size:10px;letter-spacing:3px;cursor:pointer;transition:all .2s;text-transform:uppercase}
+.ubtn:hover{background:var(--gold);color:#110e06}
+.ubtn:disabled{opacity:.4;cursor:not-allowed}
 .stitle{font-family:'Playfair Display',serif;font-size:13px;font-style:italic;color:var(--gold);letter-spacing:4px;text-transform:uppercase;margin-bottom:20px;display:flex;align-items:center;gap:12px}
 .stitle::after{content:'';flex:1;height:1px;background:linear-gradient(to right,rgba(201,168,76,.32),transparent)}
 .ccard{border:1px solid rgba(201,168,76,.12);padding:20px;margin-bottom:12px;position:relative;background:rgba(240,232,208,.015);transition:border-color .2s}
@@ -282,6 +304,7 @@ function FilmDetail({ film, comments, isAdmin, onComment }) {
 export default function App() {
   const [films,setFilms]=useState([]);
   const [loading,setLoading]=useState(true);
+  const [updating,setUpdating]=useState(false);
   const [film,setFilm]=useState(null);
   const [tab,setTab]=useState("Filmler");
   const [search,setSearch]=useState("");
@@ -300,8 +323,29 @@ export default function App() {
     try{const data=await fetchComments();setComments(data);}catch(e){console.error(e);}
   }
 
+  async function loadFilms(){
+    try {
+      const cached = await loadFilmsFromBin();
+      if(cached && cached.length > 0){ setFilms(cached); setLoading(false); return; }
+      const fresh = await fetchFilmsFromXMDB();
+      await saveFilmsToBin(fresh);
+      setFilms(fresh);
+    } catch(e){ console.error(e); }
+    setLoading(false);
+  }
+
+  async function updateFilms(){
+    setUpdating(true);
+    try {
+      const fresh = await fetchFilmsFromXMDB();
+      await saveFilmsToBin(fresh);
+      setFilms(fresh);
+    } catch(e){ console.error(e); }
+    setUpdating(false);
+  }
+
   useEffect(()=>{
-    fetchFilms().then(f=>{setFilms(f);setLoading(false);}).catch(()=>setLoading(false));
+    loadFilms();
     loadComments();
     pollRef.current=setInterval(loadComments,10000);
     return()=>clearInterval(pollRef.current);
@@ -320,7 +364,7 @@ export default function App() {
     else setPassErr("Yanlis sifre!");
   }
 
-  const filtered=films.filter(f=>f.title.toLowerCase().includes(search.toLowerCase())||f.director.toLowerCase().includes(search.toLowerCase()));
+  const filtered=films.filter(f=>f.title.toLowerCase().includes(search.toLowerCase())||(f.director||"").toLowerCase().includes(search.toLowerCase()));
   const allC=films.flatMap(f=>(comments[f.id]||[]).map(c=>({...c,filmTitle:f.title,filmId:f.id}))).sort((a,b)=>b.ts-a.ts);
 
   return(
@@ -347,6 +391,7 @@ export default function App() {
           <div className="htag">Film · Sanat · Elestiri</div>
           <div className="hbtns">
             {film&&<button className="bbtn" onClick={()=>setFilm(null)}>← Geri Don</button>}
+            {isAdmin&&<button className="ubtn" disabled={updating} onClick={updateFilms}>{updating?"Yukleniyor...":"Filmleri Guncelle"}</button>}
             {!isAdmin?<button className="abtn" onClick={()=>setShowPass(true)}>Admin</button>:<button className="abtn out" onClick={()=>setIsAdmin(false)}>Cikis</button>}
           </div>
         </header>
@@ -383,6 +428,7 @@ export default function App() {
               </div>
               {tab==="Filmler"&&<input className="srch" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Film veya yonetmen ara..."/>}
             </div>
+            {updating&&<div className="updating">Filmler guncelleniyor, lutfen bekleyin...</div>}
             {tab==="Filmler"&&(
               loading
                 ? <div className="loading">Filmler yukleniyor...</div>
