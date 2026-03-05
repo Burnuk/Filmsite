@@ -327,19 +327,21 @@ export default function App() {
     if(DEMO_MODE){setComments(loadLocal());return;}
     try{const data=await fetchComments();setComments(data);}catch(e){console.error(e);}
   }
-
-  async function loadFilms(){
-    try{
-      const cached=await loadFilmsFromBin();
+async function loadFilms(){
+  try{
+    const cached=await loadFilmsFromBin();
+    if(cached&&cached.length>0){
       cached.sort((a,b) => (b.rating||0) - (a.rating||0));
-      if(cached&&cached.length>0){setFilms(cached);setLoading(false);return;}
-      const fresh=await fetchFilmsFromXMDB();
-      await saveFilmsToBin(fresh);
-      fresh.sort((a,b) => (b.rating||0) - (a.rating||0));
-      setFilms(fresh);
-    }catch(e){console.error(e);}
-    setLoading(false);
-  }
+      setFilms(cached);setLoading(false);return;
+    }
+    const fresh=await fetchFilmsFromXMDB();
+    fresh.sort((a,b) => (b.rating||0) - (a.rating||0));
+    await saveFilmsToBin(fresh);
+    setFilms(fresh);
+  }catch(e){console.error(e);}
+  setLoading(false);
+}
+  
 
   async function updateFilms(){
     setUpdating(true);
