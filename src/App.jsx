@@ -331,9 +331,11 @@ export default function App() {
   async function loadFilms(){
     try{
       const cached=await loadFilmsFromBin();
+      cached.sort((a,b) => (b.rating||0) - (a.rating||0));
       if(cached&&cached.length>0){setFilms(cached);setLoading(false);return;}
       const fresh=await fetchFilmsFromXMDB();
       await saveFilmsToBin(fresh);
+      fresh.sort((a,b) => (b.rating||0) - (a.rating||0));
       setFilms(fresh);
     }catch(e){console.error(e);}
     setLoading(false);
