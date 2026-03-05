@@ -19,7 +19,7 @@ async function putComments(c) {
 async function fetchFilms() {
   let films = [];
   let cursor = null;
-  while (films.length < 50) {
+  while (films.length < 500) {
     const url = cursor
       ? `https://xmdbapi.com/api/v1/trending?count=50&after=${cursor}&apiKey=${XMDB_KEY}`
       : `https://xmdbapi.com/api/v1/trending?count=50&apiKey=${XMDB_KEY}`;
